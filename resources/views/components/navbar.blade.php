@@ -43,13 +43,13 @@
                 </div>
             @else
                 <div class="d-flex">
-                <a href="{{ route('login') }}" class="btn btn-master btn-secondary me-3">
-                    Sign In
-                </a>
-                <a href="#" class="btn btn-master btn-primary">
-                    Sign Up
-                </a>
-            </div>
+                    <a href="{{ route('login') }}" class="btn btn-master btn-secondary me-3">
+                        Sign In
+                    </a>
+                    <a href="{{ route('login') }}" class="btn btn-master btn-primary">
+                        Sign Up
+                    </a>
+                </div>
             @endauth
             
         </div>
