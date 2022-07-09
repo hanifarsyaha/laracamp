@@ -22,7 +22,7 @@
                             <img src="{{ asset('images/item_bootcamp.png') }}" alt="" class="cover">
                             <h1 class="package text-uppercase">
                                 {{ $camp->title }}
-                            bv</h1>
+                            </h1>
                             <p class="description">
                                 Bootcamp ini akan mengajak Anda untuk belajar penuh mulai dari pengenalan dasar sampai membangun sebuah projek asli
                             </p>
