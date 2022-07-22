@@ -57,7 +57,7 @@
                                 <label class="form-label">Address</label>
                                 <input name="address" type="text" class="form-control {{ $errors->has('address') ? 'is-invalid' : ''}}" value="{{ old('address') ?: Auth::user()->address }}" required />
                                 @if ($errors->has('address'))
-                                    <p class="text-danger">{{ $errors->first('address') }}</p>
+                                    <p class="text-danger">{{       $errors->first('address') }}</p>
                                 @endif
                             </div>
                             <button type="submit" class="w-100 btn btn-primary">Pay Now</button>

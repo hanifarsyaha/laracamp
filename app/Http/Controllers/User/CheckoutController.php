@@ -58,8 +58,8 @@ class CheckoutController extends Controller
      */
     public function store(Store $request, Camp $camp)
     {
-        // mapping data
-        $data = request()->all();
+        // mapping request data
+        $data = $request->all();
         $data['user_id'] = Auth::id();
         $data['camp_id'] = $camp->id;
 
@@ -68,8 +68,11 @@ class CheckoutController extends Controller
         $user->email = $data['email'];
         $user->name = $data['name'];
         $user->occupation = $data['occupation'];
+        $user->phone = $data['phone'];
+        $user->address = $data['address'];
         $user->save();
 
+        // create checkout
         $checkout = Checkout::create($data);
         $this->getSnapRedirect($checkout);
 
@@ -136,16 +139,28 @@ class CheckoutController extends Controller
 
         $checkout->midtrans_booking_code = $orderId;
 
-        $transaction_details = [
-            'order_id' => $orderId,
-            'gross_amount' => $price
-        ];
-
         $item_details[] = [
             'id' => $orderId,
             'price' => $price,
             'quantity' => 1,
-            'name' => 'Payment for {$checkout->Camp->title} Camp'
+            'name' => "Payment for {$checkout->Camp->title} Camp"
+        ];
+
+        $discountPrice = 0;
+        if ($checkout->Discount) {
+            $discountPrice = $price * $checkout->discount_percentage / 100;
+            $item_details[] = [
+                'id' => $checkout->Discount->code,
+                'price' => -$discountPrice,
+                'quantity' => 1,
+                'name' => "Discount {$checkout->Discount->name} ({$checkout->discount_percentage}%)"
+            ];
+        }
+
+        $total = $price - $discountPrice;
+        $transaction_details = [
+            'order_id' => $orderId,
+            'gross_amount' => $total
         ];
 
         $userData = [
@@ -158,25 +173,26 @@ class CheckoutController extends Controller
             "country_code" => "IDN",
         ];
 
-        $costumer_details = [
-            "first name" => $checkout->User->name,
+        $customer_details = [
+            "first_name" => $checkout->User->name,
             "last_name" => "",
             "email" => $checkout->User->email,
-            "phone" => $checkout->User()->phone,
+            "phone" => $checkout->User->phone,
             "billing_address" => $userData,
             "shipping_address" => $userData,
         ];
 
         $midtrans_params = [
             'transaction_details' => $transaction_details,
-            'costumer_details' => $costumer_details,
+            'customer_details' => $customer_details,
             'item_details' => $item_details,
         ];
 
         try {
             // Get Snap Payment Page URL
-            $paymentUrl = \Midtrans\Snap::createTransaction($params)->redirect_url;
+            $paymentUrl = \Midtrans\Snap::createTransaction($midtrans_params)->redirect_url;
             $checkout->midtrans_url = $paymentUrl;
+            $checkout->total = $total;
             $checkout->save();
 
             return $paymentUrl;
@@ -187,7 +203,7 @@ class CheckoutController extends Controller
 
     public function midtransCallback(Request $request)
     {
-        $notif = new Midtrans\Notification();
+        $notif = $request->method() == 'POST' ? new Midtrans\Notification() : Midtrans\Transaction::status($request->order_id);
 
         $transaction_status = $notif->transaction_status;
         $fraud = $notif->fraud_status;
@@ -209,7 +225,7 @@ class CheckoutController extends Controller
                 $checkout->payment_status = 'failed';
             } else if ($fraud == 'accept') {
                 // TODO Set payment status in merchant's database to 'failure'
-                $checkout->payment_status = 'paid';
+                $checkout->payment_status = 'failed';
             }
         } else if ($transaction_status == 'deny') {
             // TODO Set payment status in merchant's database to 'failure'
